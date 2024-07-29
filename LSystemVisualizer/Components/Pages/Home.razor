@@ -1,0 +1,178 @@
+﻿@page "/"
+@using Blazor.Extensions
+@using Blazor.Extensions.Canvas.Canvas2D
+@using ShutCo.UI.Core
+@using ShutCo.UI.Core.Rules
+<PageTitle>Home</PageTitle>
+
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h1>@GetCurrentLSystem().Name</h1>
+
+            <h4>Starting Word</h4>
+            <p>@GetCurrentLSystem().StartingWord</p>
+
+            <h4>Production Rules</h4>
+            @foreach (var prodRule in GetCurrentLSystem().ProductionRules)
+            {
+                switch (prodRule)
+                {
+                    case SimpleProdRule rule:
+                        <p>@rule.Predecessor → @LSystem.WordToString(rule.Successor)</p>
+                        break;
+                    case KLContextRule klrule:
+                        <p>@klrule.ToString()</p>
+                        break;
+                    case StochasticRule stochastic:
+                    {
+                        <p>@stochastic.Predecessor → </p>
+                        <ul>
+                            @for (int i = 0; i < stochastic.Successors.Count; i++)
+                            {
+                                <li>(Weight: @Math.Round(stochastic.Weights[i])) @LSystem.WordToString(stochastic.Successors[i])</li>
+                            }
+                        </ul>
+                        break;
+                    }
+                }
+            }
+        </div>
+        <div style="border-style: solid;" class="col">
+            @* <canvas id="canvas" onmouse></canvas> *@
+            @* <BECanvas Width="512" Height="512" @ref="_canvasReference" ></BECanvas> *@
+            <Turtle @ref="_turtle" Width="700" Height="700" />
+        </div>
+    </div>
+   
+</div>
+
+<div class="form-group row">
+    <label for="iter" class="col-sm-2 col-form-label">Iterations</label>
+    <div class="col-sm-2"><InputNumber id="iter" class="form-control" placeholder="Iterations" @bind-Value="iterations" /></div>
+</div>
+<div class="form-group row">
+    <label for="system" class="col-sm-2 col-form-label">L-System</label>
+    <div class="col-sm-2">
+        <InputSelect @bind-Value="_selectedLSystemIndex">
+            @for (int i = 0; i < _lSystems.Count; i++)
+            {
+                <option value="@i">@_lSystems[i].Name</option>
+            }
+        </InputSelect>
+    </div>
+</div>
+<div class="form-group row">
+    <label for="size" class="col-sm-2 col-form-label">Brush Length</label>
+    <div class="col-sm-2"><InputNumber id="iter" class="form-control" placeholder="Brush Length" @bind-Value="brushLength" /></div>
+</div>
+<div class="form-group row">
+    <label for="iterScalar" class="col-sm-2 col-form-label">Iteration Scalar</label>
+    <div class="col-sm-2"><InputNumber id="iterScalar" class="form-control" placeholder="1" @bind-Value="iterScalar" /></div>
+</div>
+
+<button class="btn btn-primary col-sm-1" @onclick="Reset">Reset</button>
+<button class="btn btn-primary col-sm-1" @onclick="Start">Start</button>
+
+<p>Generated Words</p>
+@foreach (var g in derivations)
+{
+    <p>@g</p>
+}
+
+@code {
+    
+    private Canvas2DContext _context;
+    protected BECanvasComponent _canvasReference;
+    
+    private LSystem GetCurrentLSystem() => _lSystems[_selectedLSystemIndex];
+
+    private Turtle _turtle;
+    private int iterations = 1;
+    private float brushLength = 300f;
+    private int _selectedLSystemIndex;
+    private float iterScalar = 1f;
+    private static readonly Random _random = new();
+
+    List<string> derivations = [];
+    
+    
+    List<LSystem> _lSystems =
+    [
+        new LSystem("Simple Algae", "a", [new SimpleProdRule("a", "ab"), new SimpleProdRule("b", "a")], 0, 0, 1),
+        new LSystem("Quadratic Koch Island", "F-F-F-F", [new SimpleProdRule("F", "F-F+F+FF-F-F+F")], 300, 90, 4),
+        new LSystem("Quadratic Island Lake", "F+F+F+F+", [new SimpleProdRule("F", "F+f-FF+F+FF+Ff+FF-f+FF-F-FF-Ff-FFF"),new SimpleProdRule("f","ffffff")], 300, 90, 8),
+        new LSystem("Dragon Curve", "L", [new SimpleProdRule("L", "L+R+"), new SimpleProdRule("R", "-L-R")], 300, 90, 2),
+        new LSystem("Sierpinski Gasket", "R", [new SimpleProdRule("L", "R+L+R"), new SimpleProdRule("R", "L-R-L")], 300, 60, 3),
+        new LSystem("Hexagonal Gosper Curve", "L", [new SimpleProdRule("L", "L+R++R-L--LL-R+"), new SimpleProdRule("R","-L+RR++R+L--L-R")], 300, 60, 3),
+        new LSystem("Plant 1", "F", [new SimpleProdRule("F", "F[+F]F[-F]F")], 100, 25.7f, 3),
+        new LSystem("Plant 2", "F", [new SimpleProdRule("F", "FF-[-F+F+F]+[+F-F-F]")], 300, 22.5f, 2.5f),
+        new LSystem("Space filling Curve", "-L", [new SimpleProdRule("L", "LF+RFR+FL-F-LFLFL-FRFR+"),new SimpleProdRule("R","-LFLF+RFRFR+F+RF-LFL-FR")], 300, 90, 4),
+        new LSystem("Stochastic Tree", "F", [new StochasticRule(_random, "F", ["F[+F]F[-F]F", "F[+F]F", "F[-F]F"], [1,1,1])], 300, 22.5f, 2.5f)
+    ];
+
+    protected override void OnInitialized()
+    {
+        _lSystems.Add(new LSystem("Context Grammar 1", "F1F1F1", [
+            new KLContextRule("0", "0", "0", "0"),
+            new KLContextRule("0", "0", "1", "1[+F1F1]"),
+            new KLContextRule("0", "1", "0", "1"),
+            new KLContextRule("0", "1", "1", "1"),
+            new KLContextRule("1", "0", "0", "0"),
+            new KLContextRule("1", "0", "1", "1F1"),
+            new KLContextRule("1", "1", "0", "0"),
+            new KLContextRule("1", "1", "1", "0"),
+            new KLContextRule("*", "+", "*", "-"),
+            new KLContextRule("*", "-", "*", "+"),
+        ], 40, 22.5f, 1f));
+        
+        _lSystems.Add(new LSystem("Fibonacci Bush", "A", [
+            new SimpleProdRule("A", "[B//////'B///////'B]"),
+            new SimpleProdRule("B", "[]&SL!A"),
+            new SimpleProdRule("S", "FL"),
+            new SimpleProdRule("F", "F/////S"),
+            new SimpleProdRule("L", " ['''^^{-f+f+f-|-f+f+f}]")
+        ], 100, 22.5f, 2));
+        
+        _lSystems[^1].Ignore = ["+", "-", "F"];
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        //_context = await _canvasReference.CreateCanvas2DAsync();
+    }
+
+    private async Task Reset()
+    {
+        await _turtle.Reset();
+        _turtle.PenVisible = false;
+        _turtle.PenSize = 1;
+        _turtle.Delay = 0;
+        await _turtle.MoveTo(0, 0);
+    }
+
+    private async Task Start()
+    {
+        var lSystem = _lSystems[_selectedLSystemIndex];
+        derivations = [];
+        var pattern = LSystem.StringToWord(lSystem.StartingWord); 
+        for (int i = 0; i < iterations; i++)
+        {
+            var step = lSystem.StepLSystem(pattern, 1);
+            derivations.Add(LSystem.WordToString(step));
+            pattern = step;
+        }
+
+        await Reset();
+
+        var (oldD, oldS) = (lSystem.Distance, lSystem.ScalingSize);
+        lSystem.Distance = brushLength;
+        lSystem.ScalingSize = iterScalar;
+        foreach (var letter in pattern)
+        {
+            await lSystem.StepTurtle(letter, _turtle, iterations);
+        }
+
+        (lSystem.Distance, lSystem.ScalingSize) = (oldD, oldS);
+    }
+}
