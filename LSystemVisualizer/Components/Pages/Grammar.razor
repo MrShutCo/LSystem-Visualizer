@@ -1,0 +1,98 @@
+﻿@page "/grammar"
+@using Blazor.Extensions.Canvas.Canvas2D
+@using ShutCo.UI.Core
+@using ShutCo.UI.Core.Rules
+<PageTitle>Grammar Generator</PageTitle>
+
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h1>@GetCurrentLSystem().Name</h1>
+
+            <h4>Starting Word</h4>
+            <p>@GetCurrentLSystem().StartingWord</p>
+
+            <h4>Production Rules</h4>
+            @foreach (var prodRule in GetCurrentLSystem().ProductionRules)
+            {
+                switch (prodRule)
+                {
+                    case SimpleProdRule rule:
+                        <p>@rule.Predecessor → @LSystem.WordToString(rule.Successor)</p>
+                        break;
+                    case KLContextRule klrule:
+                        <p>@klrule.ToString()</p>
+                        break;
+                    case StochasticRule stochastic:
+                    {
+                        <p>@stochastic.Predecessor → </p>
+                        <ul>
+                            @for (int i = 0; i < stochastic.Successors.Count; i++)
+                            {
+                                <li>(Weight: @Math.Round(stochastic.Weights[i])) @LSystem.WordToString(stochastic.Successors[i])</li>
+                            }
+                        </ul>
+                        break;
+                    }
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<div class="form-group row">
+    <label for="iter" class="col-sm-2 col-form-label">Iterations</label>
+    <div class="col-sm-2"><InputNumber id="iter" class="form-control" placeholder="Iterations" @bind-Value="iterations" /></div>
+</div>
+<div class="form-group row">
+    <label for="system" class="col-sm-2 col-form-label">L-System</label>
+    <div class="col-sm-2">
+        <InputSelect @bind-Value="_selectedLSystemIndex">
+            @for (int i = 0; i < _lSystems.Count; i++)
+            {
+                <option value="@i">@_lSystems[i].Name</option>
+            }
+        </InputSelect>
+    </div>
+</div>
+
+<button class="btn btn-primary col-sm-1" @onclick="Start">Start</button>
+
+<p>Generated Words</p>
+@foreach (var g in derivations)
+{
+    <p>@g</p>
+}
+
+@code {
+    
+    private Canvas2DContext _context;
+
+    LSystem currentLSystem;
+    
+    private LSystem GetCurrentLSystem() => _lSystems[_selectedLSystemIndex];
+    private int iterations = 1;
+    private int _selectedLSystemIndex;
+    private static readonly Random _random = new();
+    List<string> derivations = [];
+    
+    List<LSystem> _lSystems =
+    [
+        new LSystem("Simple Algae", "a", [new SimpleProdRule("a", "ab"), new SimpleProdRule("b", "a")], 0, 0, 1),
+        new LSystem("Example 2", "-F", [new SimpleProdRule("F", "F+F-F-F+F")], 300, 90, 3),
+        new LSystem("Signal Propagation", "baaaaaaaa", [new KLContextRule("b", "a", "", "b"), new SimpleProdRule("b", "a")], 0,0,1)
+    ];
+
+    private async Task Start()
+    {
+        var lSystem = _lSystems[_selectedLSystemIndex];
+        derivations = [];
+        var pattern = LSystem.StringToWord(lSystem.StartingWord); 
+        for (int i = 0; i < iterations; i++)
+        {
+            var step = lSystem.StepLSystem(pattern, 1);
+            derivations.Add(LSystem.WordToString(step));
+            pattern = step;
+        }
+    }
+}

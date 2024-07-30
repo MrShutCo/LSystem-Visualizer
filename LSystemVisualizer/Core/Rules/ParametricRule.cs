@@ -2,14 +2,25 @@ namespace ShutCo.UI.Core.Rules;
 
 public class ParametricRule : IProductionRule
 {
-    private double _t;
+    
+    private double[] _parameters;
     public string Predecessor;
 
-    public ParametricRule(double t, string predecessor, string condition, List<string> successor)
+    public ParametricRule(string rule)
     {
-        _t = t;
-        Predecessor = predecessor;
-        
+        var s = rule.Split(":");
+        var pred = s[0];
+        s = s[1].Split("->");
+        var (condition, successor) = (s[0], s[1]);
+
+        var predTokens = Tokenizer.Tokenize(pred);
+        var conditionTokens = Tokenizer.Tokenize(condition);
+        var successorTokens = Tokenizer.Tokenize(successor);
+
+        var predTree = Parser.ParseModule(new Queue<Token>(predTokens));
+        var conditionTree = Parser.ParseCondition(new Queue<Token>(conditionTokens));
+        var successorTree = Parser.ParseSuccessor(successorTokens);
+        Console.WriteLine();
     }
     
     public bool CanApply(ILSystem system, List<string> word, int index)
