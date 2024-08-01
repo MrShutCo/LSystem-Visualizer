@@ -1,10 +1,14 @@
+using LSystemVisualizer.Core.Parser;
+
 namespace ShutCo.UI.Core.Rules;
 
-public class ParametricRule : IProductionRule
+public class ParametricRule
 {
-    
-    private double[] _parameters;
-    public string Predecessor;
+    private ASTNode _predecessor;
+    private ASTNode _condition;
+    private ASTNode _successor;
+
+    private List<string> _parameters;
 
     public ParametricRule(string rule)
     {
@@ -17,19 +21,47 @@ public class ParametricRule : IProductionRule
         var conditionTokens = Tokenizer.Tokenize(condition);
         var successorTokens = Tokenizer.Tokenize(successor);
 
-        var predTree = Parser.ParseModule(new Queue<Token>(predTokens));
-        var conditionTree = Parser.ParseCondition(new Queue<Token>(conditionTokens));
-        var successorTree = Parser.ParseSuccessor(successorTokens);
-        Console.WriteLine();
-    }
-    
-    public bool CanApply(ILSystem system, List<string> word, int index)
-    {
-        return false;
+        _predecessor = Parser.ParseModule(new Queue<Token>(predTokens))!;
+        _condition = Parser.ParseCondition(new Queue<Token>(conditionTokens))!;
+        _successor = Parser.ParseModuleList(successorTokens)!;
+
+        _parameters = GetParams();
     }
 
-    public List<string> Apply()
+    public string GetModuleLetter()
     {
-        return [];
+        return _predecessor.Value;
+    }
+
+    public List<(string word, List<double> values)>? TryApply(string letter, List<double> currValues)
+    {
+        if (_predecessor.Value != letter) return null;
+        
+        // Predecessor value mapping
+        var currValuesMapping = new Dictionary<string, double>();
+        for (int i = 0; i < currValues.Count; i++)
+        {
+            currValuesMapping.Add(_parameters[i], currValues[i]);
+        }
+
+        if (Evaluator.EvaluateCondition(_condition, currValuesMapping) == false)
+        {
+            return null;
+        }
+        
+        // Do calculations
+        return Evaluator.Evaluate(_successor, currValuesMapping);
+    }
+
+    List<string> GetParams()
+    {
+        List<string> parameters = [];
+        foreach (var expr in _predecessor.ChildNodes[0].ChildNodes)
+        {
+            var param = expr.ChildNodes[0].ChildNodes[0].ChildNodes[0] as ParameterNode;
+            parameters.Add(param.Value);
+        }
+
+        return parameters;
     }
 }

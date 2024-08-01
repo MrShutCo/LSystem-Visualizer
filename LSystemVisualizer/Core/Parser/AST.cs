@@ -1,15 +1,12 @@
-namespace ShutCo.UI.Core.Rules;
+using ShutCo.UI.Core.Rules;
 
-public class AST
-{
-    
-}
+namespace LSystemVisualizer.Core.Parser;
 
 public class ASTNode
 {
     public string NodeType { get; set; }
     public string Value { get; set; }
-    public List<ASTNode> ChildNodes { get; set; }
+    public List<ASTNode>? ChildNodes { get; set; }
     
     public ASTNode(string nodeType, string value, List<ASTNode> childNodes)
     {
@@ -24,6 +21,10 @@ public class ASTNode
     }
 }
 
+
+public class ExprNode(ASTNode node) : ASTNode("ExprNode", "", [node]);
+public class TermNode(ASTNode node) : ASTNode("TermNode", "", [node]);
+public class FactorNode(ASTNode node) : ASTNode("FactorNode", "", [node]);
 
 public class UnaryOp : ASTNode
 {
@@ -52,13 +53,13 @@ public class ExprListNode : ASTNode
 
 public class BinaryOp : ASTNode
 {
-    public BinaryOp(ASTNode left, ASTNode right, string op) : base("BinaryOp", op, [left, right]){}
+    public BinaryOp(ASTNode left, ASTNode right, string type, string op) : base(type, op, [left, right]){}
 }
 
 public class Parser()
 {
     
-    public static ASTNode? ParseSuccessor(List<Token> tokens)
+    public static ASTNode? ParseModuleList(List<Token> tokens)
     {
         List<ASTNode> modules = [];
         Queue<Token> tokenQueue = new Queue<Token>(tokens);
@@ -75,10 +76,16 @@ public class Parser()
 
     public static ASTNode? ParseModule(Queue<Token> tokenQueue)
     {
+        if (tokenQueue.Count == 0) return null;
         var tok = tokenQueue.Dequeue();
         if (tok.Type != TokenType.Symbol) return null;
 
-        var tokB = tokenQueue.Dequeue();
+        if (tokenQueue.Count == 0) return new ASTNode("Module", tok.Value, []); 
+        
+        var tokB = tokenQueue.Peek();
+        // We have a standalone letter, continue on
+        if (tokB.Type == TokenType.Symbol) return new ASTNode("Module", tok.Value, []);
+        tokB = tokenQueue.Dequeue();
         if (tokB.Value != "(") return null;
 
         var node = ParseExprList(tokenQueue);
@@ -101,10 +108,10 @@ public class Parser()
         var tokRhs = tokenQueue.Dequeue();
         if (tokRhs.Type != TokenType.Constant) return null;
 
-        return new BinaryOp(expr, new ConstantNode(tokRhs.Value), tok.Value);
+        return new ASTNode("ConditionNode", tok.Value, [expr, new ConstantNode(tokRhs.Value)]);
     }
 
-    static ASTNode? ParseExprList(Queue<Token> tokenQueue)
+    static ExprListNode? ParseExprList(Queue<Token> tokenQueue)
     {
         List<ASTNode> nodes = [];
         while (tokenQueue.Count > 0)
@@ -129,12 +136,12 @@ public class Parser()
         if (term == null) return null;
 
         var tok = tokenQueue.Peek();
-        if (tok.Value is not ("+" or "-")) return term;
+        if (tok.Value is not ("+" or "-")) return new ExprNode(term);
 
         tokenQueue.Dequeue();
         var rightOp = ParseExpr(tokenQueue);
         if (rightOp == null) return null;
-        return new BinaryOp(term, rightOp, tok.Value);
+        return new ASTNode("ExprNode", tok.Value, [term, rightOp]);
     }
 
     static ASTNode? ParseTerm(Queue<Token> tokenQueue)
@@ -143,15 +150,15 @@ public class Parser()
         if (factor == null) return null;
 
         var tok = tokenQueue.Peek();
-        if (tok.Value is not ("*" or "/")) return factor;
+        if (tok.Value is not ("*" or "/")) return new TermNode(factor);
 
         tokenQueue.Dequeue();
         var rightOp = ParseTerm(tokenQueue);
         if (rightOp == null) return null;
-        return new BinaryOp(factor, rightOp, tok.Value);
+        return new ASTNode("TermNode", tok.Value, [factor, rightOp]);
     }
     
-    static ASTNode? ParseFactor(Queue<Token> tokenQueue)
+    static FactorNode? ParseFactor(Queue<Token> tokenQueue)
     {
         var tok = tokenQueue.Dequeue();
 
@@ -160,22 +167,22 @@ public class Parser()
             var expr = ParseExpr(tokenQueue);
             tok = tokenQueue.Dequeue();
             if (tok.Value != ")") return null;
-            return expr;
+            return new FactorNode(expr);
         }
         if (tok.Type == TokenType.Constant)
         {
-            return new ConstantNode(tok.Value);
+            return new FactorNode(new ConstantNode(tok.Value));
         }
         if (tok.Type == TokenType.Parameter)
         {
-            return new ParameterNode(tok.Value);
+            return new FactorNode(new ParameterNode(tok.Value));
         }
 
-        if (tok.Value == "-")
-        {
-            var factor = ParseFactor(tokenQueue);
-            return new UnaryOp(tok.Value, factor);
-        }
+        // if (tok.Value == "-")
+        // {
+        //     var factor = ParseFactor(tokenQueue);
+        //     return new UnaryOp(tok.Value, factor);
+        // }
 
         return null;
     }

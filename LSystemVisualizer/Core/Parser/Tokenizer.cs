@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace ShutCo.UI.Core.Rules;
+namespace LSystemVisualizer.Core.Parser;
 
 public enum TokenType
 {
@@ -47,7 +47,7 @@ public static class Tokenizer
         {
             if (char.IsUpper(word[i]))
             {
-                tokens.Add(ParseLetter(word, ref i));
+                tokens.Add(new Token(TokenType.Symbol, word[i].ToString()));
             } 
             else if (char.IsLower(word[i]))
             {
@@ -99,9 +99,6 @@ public static class Tokenizer
         i--;
         return new Token(type, tokValue);
     }
-    
-    private static Token ParseLetter(string word, ref int i)
-        =>ParseWhile(word, ref i, char.IsUpper, TokenType.Symbol);
     
     private static Token ParseConstant(string word, ref int i)
         =>ParseWhile(word, ref i, char.IsNumber, TokenType.Constant);
