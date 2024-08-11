@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using ShutCo.UI.Core.Rules;
 
 namespace LSystemVisualizer.Core.Parser;
@@ -38,11 +39,11 @@ public class ParameterNode : ASTNode
 
 public class ConstantNode : ASTNode
 {
-    public int ConstValue;
+    public double ConstValue;
 
     public ConstantNode(string value) : base("Constant", value, null)
     {
-        ConstValue = int.Parse(value);
+        ConstValue = double.Parse(value);
     }
 }
 
@@ -58,6 +59,17 @@ public class BinaryOp : ASTNode
 
 public class Parser()
 {
+    private static List<List<string>> operatorPrec =
+    [
+        ["^"],
+        ["+", "-"],
+        ["<", ">", "<=", ">="],
+        ["==", "!="],
+        ["&"],
+        ["|"],
+        ["&&"],
+        ["||"],
+    ];
     
     public static ASTNode? ParseModuleList(List<Token> tokens)
     {
@@ -95,6 +107,21 @@ public class Parser()
         if (tokRB.Value != ")") return null;
         
         return new ASTNode("Module", tok.Value, [node]);
+    }
+
+    static ASTNode? ParseConditionList(Queue<Token> tokenQueue)
+    {
+        var condition = ParseCondition(tokenQueue);
+        if (condition == null) return null;
+
+        if (tokenQueue.Count == 0) return condition;
+        var tok = tokenQueue.Peek();
+        if (tok.Value is not ("&" or "|")) return condition;
+
+        var logicalOpToken = tokenQueue.Dequeue();
+        var restOf = ParseConditionList(tokenQueue);
+
+        return new ASTNode("LogicalOpNode", logicalOpToken.Value, [condition, restOf]);
     }
 
     public static ASTNode? ParseCondition(Queue<Token> tokenQueue)
@@ -150,12 +177,62 @@ public class Parser()
         if (factor == null) return null;
 
         var tok = tokenQueue.Peek();
-        if (tok.Value is not ("*" or "/")) return new TermNode(factor);
+        if (tok.Value is not ("*" or "/" or "^")) return new TermNode(factor);
 
         tokenQueue.Dequeue();
         var rightOp = ParseTerm(tokenQueue);
         if (rightOp == null) return null;
         return new ASTNode("TermNode", tok.Value, [factor, rightOp]);
+    }
+
+
+    public static ASTNode ParsePrecedence(List<Token> tokens)
+    {
+        return ParsePrecedence(new Queue<Token>(tokens), 0);
+    }
+    
+    public static ASTNode ParsePrecedence(Queue<Token> tokenQueue, int level)
+    {
+        if (tokenQueue.Count == 0) return null;
+        var left = level == operatorPrec.Count-1 ? ParsePrimary(tokenQueue) : ParsePrecedence(tokenQueue, level + 1);
+
+        if (tokenQueue.Count == 0) return left;
+        var tok = tokenQueue.Peek();
+        if (operatorPrec[level].Contains(tok.Value)) return left;
+        if (tok.Value == ")") return left;
+        
+        tokenQueue.Dequeue();
+        var right = ParsePrecedence(tokenQueue, level);
+        return new ASTNode($"PrecedenceOp {level}", tok.Value, [left, right]);
+    }
+
+    static ASTNode? ParsePrimary(Queue<Token> tokenQueue)
+    {
+        var tok = tokenQueue.Dequeue();
+
+        if (tok.Value == "(")
+        {
+            var expr = ParsePrecedence(tokenQueue, operatorPrec.Count+1);
+            tok = tokenQueue.Dequeue();
+            if (tok.Value != ")") return null;
+            return new ASTNode("Primary", "()", [expr]);
+        }
+        if (tok.Type == TokenType.Constant)
+        {
+            return new ConstantNode(tok.Value);
+        }
+        if (tok.Type == TokenType.Parameter)
+        {
+            return new ParameterNode(tok.Value);
+        }
+
+        // if (tok.Value == "-")
+        // {
+        //     var factor = ParseFactor(tokenQueue);
+        //     return new UnaryOp(tok.Value, factor);
+        // }
+
+        return null;
     }
     
     static FactorNode? ParseFactor(Queue<Token> tokenQueue)

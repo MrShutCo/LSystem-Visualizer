@@ -36,3 +36,22 @@ var rules = testParam.Select(t => new ParametricRule(t)).ToList();
 
 var lsystem = new ParametricLSystem(rules);
 lsystem.StepLSystem([startingWord1], 10);
+
+var rule = "A(t) : t > 5 & t < 7 -> B(t+1)CD(t^0.5,t-2)";
+
+var tokens = Tokenizer.Tokenize(rule);
+foreach (var token in tokens)
+{
+    Console.WriteLine(token.Value);
+}
+
+tokens = Tokenizer.Tokenize("x > 4 & x <= 0");
+var tree = Parser.ParsePrecedence(tokens);
+Console.WriteLine(tree);
+/*
+var s = "F(1,0)";
+List<string> rulesS =
+[
+    "F(x,t) : t = 0 -> F(x*p,2)+F(x*h),1--F(x*h,1)+F(x*q,0)",
+    "F(x,t) : t > 0 -> F(x,t-1)"
+];*/

@@ -62,7 +62,7 @@ public static class Tokenizer
                 case '<' or '>' or '=':
                     tokens.Add(ParseConditional(word, ref i));
                     break;
-                case '+' or '-' or '*' or '/':
+                case '+' or '-' or '*' or '/' or '^' or '&' or '|':
                     tokens.Add(new Token(TokenType.BinaryOp, word[i].ToString()));
                     break;
                 case '(' or ')':
@@ -99,8 +99,19 @@ public static class Tokenizer
         i--;
         return new Token(type, tokValue);
     }
-    
+
     private static Token ParseConstant(string word, ref int i)
-        =>ParseWhile(word, ref i, char.IsNumber, TokenType.Constant);
+    {
+        var tokValue = "";
+        bool hasSeenPeriod = false;
+        while (i < word.Length && (char.IsNumber(word[i]) || (word[i] == '.' && hasSeenPeriod == false)))
+        {
+            tokValue += word[i];
+            if (word[i] == '.') hasSeenPeriod = true;
+            i++;
+        }
+        i--;
+        return new Token(TokenType.Constant, tokValue);
+    }
     
 }

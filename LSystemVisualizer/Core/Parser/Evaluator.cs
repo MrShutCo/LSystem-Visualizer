@@ -48,7 +48,7 @@ public class Evaluator
 
         return moduleValues;
     }
-
+    
     public static bool EvaluateCondition(ASTNode condition, Dictionary<string, double> currValues)
     {
         if (condition.ChildNodes?.Count != 2) throw new Exception("Condition improperly formatted!");
@@ -96,6 +96,7 @@ public class Evaluator
             var rhsValue = EvaluateTerm(term.ChildNodes[1], currValues);
             if (term.Value == "*") return factor * rhsValue;
             if (term.Value == "/") return factor / rhsValue;
+            if (term.Value == "^") return Math.Pow(factor, rhsValue);
             throw new Exception($"Undefined binary operator {term.Value} found!");
         }
 
@@ -120,60 +121,4 @@ public class Evaluator
         return 0;
     }
     
-    /*
-    public static double EvaluateExpression(ASTNode expr, Dictionary<string, double> currValues)
-    {
-        if (expr.NodeType == "term")
-        {
-            return EvalulateTerm(expr, currValues);
-        }
-
-        if (expr.ChildNodes?.Count == 2)
-        {
-            var term = EvalulateTerm(expr.ChildNodes[0], currValues);
-            var rhs = EvaluateExpression(expr.ChildNodes[1], currValues);
-            
-            if (expr.Value == "+") return term + rhs;
-            if (expr.Value == "-") return term - rhs;
-            throw new Exception($"Undefined binary operator {expr.Value} found!");
-        }
-
-        throw new Exception($"Invalid number of operands in expression! Count: {expr.ChildNodes?.Count}, Node: {expr.Value}");
-    }
-
-    static double EvalulateTerm(ASTNode term, Dictionary<string, double> currValues)
-    {
-        if (term.ChildNodes is null || term.ChildNodes?.Count <= 1)
-        {
-            return EvalulateFactor(term, currValues);
-        }
-
-        if (term.ChildNodes?.Count == 2)
-        {
-            var fac = EvalulateFactor(term.ChildNodes[0], currValues);
-            var rhs = EvalulateTerm(term.ChildNodes[1], currValues);
-            if (term.Value == "*") return fac * rhs;
-            if (term.Value == "/") return fac / rhs;
-            throw new Exception($"Undefined binary operator {term.Value} found!");
-        }
-        
-        throw new Exception($"Invalid number of operands in term! Count: {term.ChildNodes?.Count}, Node: {term.Value}");
-    }
-    
-    static double EvalulateFactor(ASTNode factor, Dictionary<string, double> currValues)
-    {
-        if (factor is ConstantNode constNode) return constNode.ConstValue;
-
-        if (factor is ParameterNode paramNode)
-        {
-            if (!currValues.ContainsKey(paramNode.Value))
-                throw new Exception(
-                    $"Parameter {paramNode.Value} is not a valid parameter found in predeccessor module!");
-            return currValues[paramNode.Value];
-        }
-
-        if (factor is BinaryOp exprNode && exprNode.NodeType == "expr") return EvaluateExpression(exprNode, currValues);
-
-        return 0;
-    }*/
 }

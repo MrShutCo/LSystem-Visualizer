@@ -7,9 +7,7 @@ namespace LSystemVisualizer.Core;
 
 public class ParametricLSystem : ILSystem
 {
-    private List<Dictionary<string, double>> systemState = [];
     private List<ParametricRule> _rules = [];
-
     private List<string> _lettersWithRules;
 
     public ParametricLSystem(List<ParametricRule> rules)
