@@ -1,0 +1,33 @@
+@using LSystemVisualizer.Core.Parser
+
+@if (Passed is not null)
+{
+<ul>
+    @if (Passed.ChildNodes is not null)
+    {
+    @foreach (var child in Passed.ChildNodes)
+    {
+        <li>
+            @if (child.Value == "")
+            {
+                <u>@child.NodeType</u>   
+            }
+            else
+            {
+                <u>@(child.Value)</u>
+            }
+           
+            <ASTTreeNode Passed="child"></ASTTreeNode>
+        </li>
+    }
+    }
+</ul>
+}
+
+@code {
+
+[Parameter]
+public ASTNode? Passed { get; set; }
+
+
+}

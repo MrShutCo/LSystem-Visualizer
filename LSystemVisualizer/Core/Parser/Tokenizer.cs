@@ -10,6 +10,7 @@ public enum TokenType
     Conditional,
     BinaryOp,
     Parenthesis,
+    StateControl,
     Comma
 }
 
@@ -70,6 +71,9 @@ public static class Tokenizer
                     break;
                 case ',':
                     tokens.Add(new Token(TokenType.Comma, word[i].ToString()));
+                    break;
+                case '[' or ']':
+                    tokens.Add(new Token(TokenType.StateControl, word[i].ToString()));
                     break;
             }
         }

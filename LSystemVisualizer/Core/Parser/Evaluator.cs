@@ -3,8 +3,9 @@ using LSystemVisualizer.Core.Parser;
 
 namespace ShutCo.UI.Core.Rules;
 
-public class Evaluator
+public static class Evaluator
 {
+    public const int DigitsPrecision = 4;
     
     public static List<(string word, List<double> values)> Evaluate(ASTNode moduleList, Dictionary<string, double> currValues)
     {
@@ -47,6 +48,22 @@ public class Evaluator
         }
 
         return moduleValues;
+    }
+
+    public static bool EvaludateConditionModule(ASTNode condition, Dictionary<string, double> currValues)
+    {
+        if (condition.ChildNodes?.Count == 0) throw new Exception("Condition module has no child, invalid!");
+        
+        var lhs = EvaluateCondition(condition.ChildNodes[0], currValues);
+        if (condition.ChildNodes.Count > 1)
+        {
+            var rhs = EvaludateConditionModule(condition.ChildNodes[1], currValues);
+            if (condition.Value == "&") return lhs && rhs;
+            if (condition.Value == "|") return lhs || rhs;
+            throw new Exception($"Unknown conditional operator: {condition.Value}");
+        }
+
+        return lhs;
     }
     
     public static bool EvaluateCondition(ASTNode condition, Dictionary<string, double> currValues)
@@ -94,9 +111,9 @@ public class Evaluator
         if (term.ChildNodes.Count == 2)
         {
             var rhsValue = EvaluateTerm(term.ChildNodes[1], currValues);
-            if (term.Value == "*") return factor * rhsValue;
-            if (term.Value == "/") return factor / rhsValue;
-            if (term.Value == "^") return Math.Pow(factor, rhsValue);
+            if (term.Value == "*") return Math.Round(factor * rhsValue, DigitsPrecision);
+            if (term.Value == "/") return Math.Round(factor / rhsValue, DigitsPrecision);
+            if (term.Value == "^") return Math.Round(Math.Pow(factor, rhsValue), DigitsPrecision);
             throw new Exception($"Undefined binary operator {term.Value} found!");
         }
 

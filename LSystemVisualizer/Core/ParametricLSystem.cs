@@ -7,19 +7,35 @@ namespace LSystemVisualizer.Core;
 
 public class ParametricLSystem : ILSystem
 {
-    private List<ParametricRule> _rules = [];
+    public List<ParametricRule> Rules = [];
     private List<string> _lettersWithRules;
-
-    public ParametricLSystem(List<ParametricRule> rules)
+    public string StartingWord;
+    public float Angle;
+    public string Name;
+    public float ScalingSize;
+    public float Distance;
+    
+    public Dictionary<string, double> Defines;
+    
+    public ParametricLSystem(string startingWord, List<ParametricRule> rules, Dictionary<string, string> defines)
     {
-        _rules = rules;
-        _lettersWithRules = _rules.Select(r => r.GetModuleLetter()).ToList();
+        Rules = rules;
+        StartingWord = startingWord;
+        Defines = [];
+        foreach (var definition in defines)
+        {
+            var definitionParseTree =Parser.Parser.ParseExpr(new Queue<Token>(Tokenizer.Tokenize(definition.Value)));
+            var defValue = Evaluator.EvaluateExpression(definitionParseTree, Defines);
+            Defines[definition.Key] = defValue;
+        }
+        
+        _lettersWithRules = Rules.Select(r => r.GetModuleLetter()).ToList();
     }
 
     public List<string> StepLSystem(List<string> word, int iterations)
     {
         var newWord = word;
-        for (int i = 0; i < iterations; i++)
+        for (var i = 0; i < iterations; i++)
         {
             newWord = StepLSystem(newWord);
             Console.WriteLine(newWord[0]);
@@ -36,11 +52,8 @@ public class ParametricLSystem : ILSystem
         // and how to insert them back into the data
         //var constantLetters = RemoveNonParametricTokens(tokens);
         var astTree = Parser.Parser.ParseModuleList(tokens);
-
-        string newWord = "";
-        
-        var emptyVals = new Dictionary<string, double>();
-        
+        var newWord = "";
+        var emptyVals = new Dictionary<string, double>(Defines);
         // List of each module, and all of the current values
         var evaluations = Evaluator.Evaluate(astTree, emptyVals);
 
@@ -54,10 +67,10 @@ public class ParametricLSystem : ILSystem
             }
             
             List<(string word, List<double> values)>? newValues = null;
-            foreach (var rule in _rules)
+            foreach (var rule in Rules)
             {
                 // This may need to generate a list of stuff because more than one module may return
-                newValues = rule.TryApply(module.word, module.values);
+                newValues = rule.TryApply(module.word, module.values, Defines);
                 if (newValues != null)
                 {
                     break;
@@ -66,7 +79,8 @@ public class ParametricLSystem : ILSystem
             
             if (newValues == null)
             {
-                newWord += module.word;
+                if (module.values.Count == 0) newWord += module.word;
+                else newWord += ModuleToString(module.word, module.values);
             }
             else
             {
@@ -79,26 +93,6 @@ public class ParametricLSystem : ILSystem
 
         return [newWord];
     }
-
-    /// <summary>
-    /// Removes all tokens from the list that are not in some parametric rule. These tokens will just get replicated
-    /// will not be attempted to be parsed
-    /// </summary>
-    List<(string, int)> RemoveNonParametricTokens(List<Token> tokens)
-    {
-        List<(string, int)> removedTokens = [];
-        for (int i = tokens.Count-1; i >= 0; i--)
-        {
-            if (tokens[i].Type == TokenType.Symbol && _lettersWithRules.Contains(tokens[i].Value))
-            {
-                tokens.RemoveAt(i);
-                removedTokens.Add((tokens[i].Value, i));
-            }
-        }
-
-        return removedTokens;
-    }
-
     string ModuleToString(string word, List<double> values)
     {
         string s = word;
@@ -117,9 +111,41 @@ public class ParametricLSystem : ILSystem
         return s;
     }
 
-    public virtual async Task StepTurtle(string letter, Turtle turtle, int iterations)
+    public virtual async Task StepTurtle(string word, Turtle turtle, int iterations)
     {
-        await Task.Delay(100);
+        var modules = Parser.Parser.ParseModuleList(Tokenizer.Tokenize(word));
+        Stack<(float, float, float)> stateStack = [];
+        foreach (var module in modules.ChildNodes)
+        {
+            var values = Evaluator.EvaluateModule(module, []);
+
+            switch (module.Value)
+            {
+                case "F":
+                    turtle.PenVisible = true;
+                    await turtle.Forward(Distance * (float)values[0]);
+                    break;
+                case "f":
+                    turtle.PenVisible = false;
+                    await turtle.Forward(Distance * (float)values[0]);
+                    break;
+                case "+":
+                    await turtle.Rotate(-Angle);
+                    break;
+                case "-":
+                    await turtle.Rotate(Angle);
+                    break;
+                case "[":
+                    stateStack.Push((turtle.X, turtle.Y, turtle.Angle));
+                    break;
+                case "]":
+                    var currState = stateStack.Pop();
+                    turtle.PenVisible = false;
+                    await turtle.MoveTo(currState.Item1, currState.Item2);
+                    await turtle.RotateTo(currState.Item3);
+                    break;
+            }
+        }
     }
 
     public List<string> Ignore { get; set; }

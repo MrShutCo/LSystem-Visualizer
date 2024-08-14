@@ -1,0 +1,213 @@
+@page "/param"
+@using System.Numerics
+@using Blazor.Extensions.Canvas.Canvas2D
+@using LSystemVisualizer.Core
+@using ShutCo.UI.Core
+@using ShutCo.UI.Core.Rules
+<PageTitle>Home</PageTitle>
+
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <div class="row">
+                <h1>@GetCurrentLSystem().Name</h1>
+
+                <h4>Starting Word</h4>
+                <p>@GetCurrentLSystem().StartingWord</p>
+
+                <h4>Production Rules</h4>
+                @foreach (var rule in GetCurrentLSystem().Rules)
+                {
+                    <p>@rule.ToString()</p>
+                }
+            </div>
+            <div class="container">
+                <div class="form-group row">
+                    <label for="iter" class="col-sm-4 col-form-label">Iterations</label>
+                    <div class="col-sm-4"><InputNumber id="iter" class="form-control" placeholder="Iterations" @bind-Value="iterations" /></div>
+                </div>
+                <div class="form-group row">
+                    <label for="system" class="col-sm-4 col-form-label">L-System</label>
+                    <div class="col-sm-4">
+                        <select @onchange="OnSelect">
+                            @for (int i = 0; i < _lSystems.Count; i++)
+                            {
+                            <option value="@i">@_lSystems[i].Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="size" class="col-sm-4 col-form-label">Brush Length</label>
+                    <div class="col-sm-4"><InputNumber id="iter" class="form-control" placeholder="Brush Length" @bind-Value="brushLength" /></div>
+                </div>
+                <div class="form-group row">
+                    <label for="iterScalar" class="col-sm-4 col-form-label">Iteration Scalar</label>
+                    <div class="col-sm-4"><InputNumber id="iterScalar" class="form-control" placeholder="1" @bind-Value="iterScalar" /></div>
+                </div>
+                <div class="form-group row">
+                    <label for="position" class="col-sm-4 col-form-label">Starting Position</label>
+                    <div class="col-sm-4"><InputText id="position" class="form-control" placeholder="0,0" @bind-Value="startingPos" /></div>
+                </div>
+                <div class="form-group row">
+                    <label for="delay" class="col-sm-4 col-form-label">Delay</label>
+                    <div class="col-sm-4"><InputNumber id="delay" class="form-control" placeholder="0,0" @bind-Value="delay" /></div>
+                </div>
+
+                <button class="btn btn-primary col-sm-3" @onclick="Reset">Reset</button>
+                <button class="btn btn-primary col-sm-3" @onclick="Start">Start</button>
+            </div>
+        </div>
+        <div style="border-style: solid;" class="col">
+            @* <canvas id="canvas" onmouse></canvas> *@
+            @* <BECanvas Width="512" Height="512" @ref="_canvasReference" ></BECanvas> *@
+            <Turtle @ref="_turtle" Width="700" Height="700" />
+        </div>
+    </div>
+</div>
+
+
+
+<p>Generated Words</p>
+@foreach (var g in derivations)
+{
+    <p>@g</p>
+}
+
+@code {
+    
+    private Canvas2DContext _context;
+    
+    private ParametricLSystem GetCurrentLSystem() => _lSystems[_selectedLSystemIndex];
+
+    int delay;
+    private Turtle _turtle;
+    private int iterations = 1;
+    private float brushLength = 300f;
+    private int _selectedLSystemIndex;
+    private float iterScalar = 1f;
+    private string startingPos = "";
+    private static readonly Random _random = new();
+
+    List<string> derivations = [];
+    
+    
+    List<ParametricLSystem> _lSystems =
+    [
+        new ParametricLSystem("F(1)", [
+            new ParametricRule("F(x) : -> F(x*p)+F(x*h)--F(x*h)+F(x*q)")
+        ], new Dictionary<string, string>{
+            {"c", "1"},
+            {"p", "0.3"},
+            {"q", "c-p"},
+            {"h", "(p*q)^0.5"},
+        }),
+        new ParametricLSystem("A(1)", [
+            new ParametricRule("A(s) : -> F(s)[+A(s/r)][-A(s/r)]")
+        ], new Dictionary<string, string>
+        {
+            { "r", "1.456" }
+        }),
+        new ParametricLSystem("A(1,10)", [
+            new ParametricRule("A(l,w) : -> !(w)F(l)[&(a)B(l*t,w*x)]/(d)A(l*r,w*x)"),
+            new ParametricRule("B(l,w) : -> !(w)F(l)[-(b)$C(l*t,w*x)]C(l*r,w*x)"),
+            new ParametricRule("C(l,w) : -> !(w)F(l)[+(b)$B(l*t,w*x)]B(l*r,w*x)")
+    
+        ], new Dictionary<string, string>
+        {
+            { "r", "0.9" },
+            { "t", "0.6" },
+            { "a", "45" },
+            { "b", "45" },
+            { "d", "137.5" },
+            { "x", "0.707" }
+        })
+    ];
+
+    List<(Vector2, float)> startingPositions =
+    [
+        (new Vector2(-200,0), 90),
+        (new Vector2(0,0), 0),
+        (new Vector2(0,-200), 0),
+    ];
+
+    protected override void OnInitialized()
+    {
+        _lSystems[0].Name = "Row of Trees 1";
+        _lSystems[0].Distance = 450;
+        _lSystems[0].Angle = 85;
+        
+        _lSystems[1].Name = "Spiral Tree";
+        _lSystems[1].Distance = 200;
+        _lSystems[1].Angle = 85;
+        
+        _lSystems[2].Name = "3D Test";
+        _lSystems[2].Distance = 450;
+        _lSystems[2].Angle = 85;
+        
+        Select(0);
+    }
+
+    private async Task Reset()
+    {
+        await _turtle.Reset();
+        _turtle.PenVisible = false;
+        _turtle.PenSize = 1;
+        
+        await _turtle.MoveTo(0, 0);
+        await _turtle.RotateTo(90);
+    }
+
+    private async Task Start()
+    {
+        var lSystem = _lSystems[_selectedLSystemIndex];
+        derivations = [];
+        _turtle.Delay = delay;
+        var pattern = new List<string>{lSystem.StartingWord}; 
+        for (int i = 0; i < iterations; i++)
+        {
+            var step = lSystem.StepLSystem(pattern, 1);
+            derivations.Add(LSystem.WordToString(step));
+            pattern = step;
+        }
+
+        await Reset();
+
+        var (oldD, oldS) = (lSystem.Distance, lSystem.ScalingSize);
+        lSystem.Distance = brushLength;
+        lSystem.ScalingSize = iterScalar;
+
+        var (_, startingAngle) = startingPositions[_selectedLSystemIndex];
+        var startingPos = ParseStartingPosition();
+
+        _turtle.PenVisible = false;
+        await _turtle.MoveTo(startingPos.X, startingPos.Y);
+        await _turtle.RotateTo(startingAngle);
+
+        await lSystem.StepTurtle(pattern[0], _turtle, iterations);
+
+        (lSystem.Distance, lSystem.ScalingSize) = (oldD, oldS);
+    }
+
+    private Vector2 ParseStartingPosition()
+    {
+        var pos = startingPos.Split(",");
+        if (pos.Length != 2) return new Vector2(0, 0);
+        return new Vector2(int.Parse(pos[0]), int.Parse(pos[1]));
+    }
+    
+    private void OnSelect(ChangeEventArgs e)
+    {
+        var s = int.Parse(e.Value.ToString());
+        Select(s);
+    }
+
+    void Select(int s)
+    {
+        _selectedLSystemIndex = s;
+        brushLength = _lSystems[s].Distance;
+        iterScalar = _lSystems[s].ScalingSize;
+        startingPos = $"{startingPositions[s].Item1.X},{startingPositions[s].Item1.Y}";   
+    }
+
+}

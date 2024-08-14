@@ -4,14 +4,20 @@ namespace ShutCo.UI.Core.Rules;
 
 public class ParametricRule
 {
-    private ASTNode _predecessor;
-    private ASTNode _condition;
-    private ASTNode _successor;
+    public ASTNode Predecessor { get; }
+    public ASTNode? Condition { get; }
+    public ASTNode Successor { get; }
+    
+    public string PredecessorText { get; }
+    public string ConditionText { get; }
+    public string SuccessorText { get; }
 
     private List<string> _parameters;
+    private string ruleText;
 
     public ParametricRule(string rule)
     {
+        ruleText = rule;
         var s = rule.Split(":");
         var pred = s[0];
         s = s[1].Split("->");
@@ -20,43 +26,51 @@ public class ParametricRule
         var predTokens = Tokenizer.Tokenize(pred);
         var conditionTokens = Tokenizer.Tokenize(condition);
         var successorTokens = Tokenizer.Tokenize(successor);
+        PredecessorText = pred;
+        ConditionText = condition;
+        SuccessorText = successor;
 
-        _predecessor = Parser.ParseModule(new Queue<Token>(predTokens))!;
-        _condition = Parser.ParseCondition(new Queue<Token>(conditionTokens))!;
-        _successor = Parser.ParseModuleList(successorTokens)!;
+        Predecessor = Parser.ParseModule(new Queue<Token>(predTokens))!;
+        Condition = Parser.ParseModuleCondition(new Queue<Token>(conditionTokens))!;
+        Successor = Parser.ParseModuleList(successorTokens)!;
 
         _parameters = GetParams();
     }
 
-    public string GetModuleLetter()
+    public override string ToString()
     {
-        return _predecessor.Value;
+        return ruleText;
     }
 
-    public List<(string word, List<double> values)>? TryApply(string letter, List<double> currValues)
+    public string GetModuleLetter()
     {
-        if (_predecessor.Value != letter) return null;
+        return Predecessor.Value;
+    }
+
+    public List<(string word, List<double> values)>? TryApply(string letter, List<double> currValues, Dictionary<string, double> defines)
+    {
+        if (Predecessor.Value != letter) return null;
         
         // Predecessor value mapping
-        var currValuesMapping = new Dictionary<string, double>();
+        var currValuesMapping = new Dictionary<string, double>(defines);
         for (int i = 0; i < currValues.Count; i++)
         {
             currValuesMapping.Add(_parameters[i], currValues[i]);
         }
 
-        if (Evaluator.EvaluateCondition(_condition, currValuesMapping) == false)
+        if (Condition != null && Evaluator.EvaludateConditionModule(Condition, currValuesMapping) == false)
         {
             return null;
         }
         
         // Do calculations
-        return Evaluator.Evaluate(_successor, currValuesMapping);
+        return Evaluator.Evaluate(Successor, currValuesMapping);
     }
 
     List<string> GetParams()
     {
         List<string> parameters = [];
-        foreach (var expr in _predecessor.ChildNodes[0].ChildNodes)
+        foreach (var expr in Predecessor.ChildNodes[0].ChildNodes)
         {
             var param = expr.ChildNodes[0].ChildNodes[0].ChildNodes[0] as ParameterNode;
             parameters.Add(param.Value);

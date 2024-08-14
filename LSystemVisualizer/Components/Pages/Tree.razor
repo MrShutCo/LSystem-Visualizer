@@ -1,0 +1,71 @@
+@page "/tree"
+@using LSystemVisualizer.Core
+@using LSystemVisualizer.Core.Parser
+@using ShutCo.UI.Core.Rules
+
+<PageTitle>Tree</PageTitle>
+<h3>@word</h3>
+<div class="col-sm-4"><input id="iter" @oninput="Generate" class="form-control" placeholder="Word" value="@word" /></div>
+
+<h3>@_rule.PredecessorText</h3>
+<div class="tree">
+    <ul>
+        <li>
+            <u>@_rule.Predecessor.Value</u>
+            <ASTTreeNode Passed="_rule.Predecessor"></ASTTreeNode>
+        </li>
+    </ul>
+</div>
+
+<br><br>
+
+<h3>@_rule.ConditionText</h3>
+<div class="tree">
+    <ul>
+        <li>
+            <u>@_rule.Condition?.Value</u>
+            <ASTTreeNode Passed="_rule.Condition"></ASTTreeNode>
+        </li>
+    </ul>
+</div>
+
+<br><br>
+
+<h3>@_rule.SuccessorText</h3>
+<div class="tree">
+    <ul>
+        <li>
+            <u>@_rule.Successor?.Value</u>
+            <ASTTreeNode Passed="_rule.Successor"></ASTTreeNode>
+        </li>
+    </ul>
+</div>
+
+@code {
+    ASTNode? _tree;
+    string word;
+
+    ParametricRule _rule;
+
+    protected override void OnInitialized()
+    {
+        word = "F(x) : -> F(x*p)+F(x*h)--F(x*h)+F(x*q)";
+        _rule = new ParametricRule(word);
+        //_tree = Parser.ParseModuleList(Tokenizer.Tokenize(word));
+    }
+
+    void Generate(ChangeEventArgs args)
+    {
+        word = args?.Value?.ToString();
+        try
+        {
+            //_tree = Parser.ParseModuleList(Tokenizer.Tokenize(word));
+            _rule = new ParametricRule(word);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
+}
