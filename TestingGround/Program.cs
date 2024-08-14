@@ -45,7 +45,7 @@ var system2 = new ParametricLSystem("A(1)", [
     { "r", "1.456" }
 });
 
-system2.StepLSystem(["A(1)"], 1);
+//system2.StepLSystem(["A(1)"], 1);
 
 var system = new ParametricLSystem("F(1)", [
     new ParametricRule("F(x) : -> F(x*p)+F(x*h)--F(x*h)+F(x*q)")
@@ -73,6 +73,12 @@ var system3 = new ParametricLSystem("A(1,10)", [
     { "d", "137.5" },
     { "x", "0.707" }
 });
+
+var ctx = new ParametricLSystem("A(4)B(5)C(6)", [
+    new ParametricRule("B(y) : x+y+z > 10 -> E(x,y,z)", "A(x)", "C(z)")
+],new Dictionary<string, string>());
+
+ctx.StepLSystem([ctx.StartingWord], 1);
 
 
 //system2.StepLSystem(["A(1,10)"], 1);

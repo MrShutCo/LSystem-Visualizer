@@ -1,21 +1,48 @@
+using LSystemVisualizer.Core;
 using LSystemVisualizer.Core.Parser;
 
 namespace ShutCo.UI.Core.Rules;
 
 public class ParametricRule
 {
-    public ASTNode Predecessor { get; }
-    public ASTNode? Condition { get; }
-    public ASTNode Successor { get; }
+    public ASTNode Predecessor { get; private set; }
+    public ASTNode? Condition { get; private set; }
+    public ASTNode Successor { get; private set; }
     
-    public string PredecessorText { get; }
-    public string ConditionText { get; }
-    public string SuccessorText { get; }
+    public string PredecessorText { get; private set; }
+    public string ConditionText { get; private set; }
+    public string SuccessorText { get; private set; }
+    
+    public string LeftContextText { get; }
+    public string RightContextText { get; }
+
+    private ASTNode? LeftContext;
+    private ASTNode? RightContext;
 
     private List<string> _parameters;
+    private List<string> _leftParams;
+    private List<string> _rightParams;
     private string ruleText;
 
+    public ParametricRule(string rule, string leftContext, string rightContext)
+    {
+        PrepareRule(rule);
+        LeftContextText = leftContext;
+        RightContextText = rightContext;
+        LeftContext = Parser.ParseModule(new Queue<Token>(Tokenizer.Tokenize(LeftContextText)));
+        RightContext = Parser.ParseModule(new Queue<Token>(Tokenizer.Tokenize(RightContextText)));
+        _leftParams = GetParams(LeftContext);
+        _rightParams = GetParams(RightContext);
+    }
+    
     public ParametricRule(string rule)
+    {
+        PrepareRule(rule);
+        LeftContextText = "";
+        RightContextText = "";
+    }
+
+    void PrepareRule(string rule)
     {
         ruleText = rule;
         var s = rule.Split(":");
@@ -34,12 +61,16 @@ public class ParametricRule
         Condition = Parser.ParseModuleCondition(new Queue<Token>(conditionTokens))!;
         Successor = Parser.ParseModuleList(successorTokens)!;
 
-        _parameters = GetParams();
+        _parameters = GetParams(Predecessor);
     }
 
     public override string ToString()
     {
-        return ruleText;
+        var s = "";
+        if (LeftContextText != "") s += LeftContext + " < ";
+        s += PredecessorText;
+        if (RightContextText != "") s += " > " + RightContext;
+        return $"{s} : {ConditionText} -> {SuccessorText}";
     }
 
     public string GetModuleLetter()
@@ -47,15 +78,15 @@ public class ParametricRule
         return Predecessor.Value;
     }
 
-    public List<(string word, List<double> values)>? TryApply(string letter, List<double> currValues, Dictionary<string, double> defines)
+    public List<Module>? TryApply(Module module, Dictionary<string, double> defines)
     {
-        if (Predecessor.Value != letter) return null;
+        if (Predecessor.Value != module.Word) return null;
         
         // Predecessor value mapping
         var currValuesMapping = new Dictionary<string, double>(defines);
-        for (int i = 0; i < currValues.Count; i++)
+        for (int i = 0; i < module.Values.Count; i++)
         {
-            currValuesMapping.Add(_parameters[i], currValues[i]);
+            currValuesMapping.Add(_parameters[i], module.Values[i]);
         }
 
         if (Condition != null && Evaluator.EvaludateConditionModule(Condition, currValuesMapping) == false)
@@ -66,11 +97,52 @@ public class ParametricRule
         // Do calculations
         return Evaluator.Evaluate(Successor, currValuesMapping);
     }
+    
+    public List<Module>? TryApplyContext(Module? left, Module main, Module? right, Dictionary<string, double> defines)
+    {
+        if (Predecessor.Value != main.Word) return null;
+        
+        // Predecessor value mapping
+        var currValuesMapping = new Dictionary<string, double>(defines);
+        for (int i = 0; i < main.Values.Count; i++)
+        {
+            currValuesMapping.Add(_parameters[i], main.Values[i]);
+        }
+        for (int i = 0; i < left?.Values.Count; i++)
+        {
+            currValuesMapping.Add(_leftParams[i], left.Values[i]);
+        }
+        for (int i = 0; i < right?.Values.Count; i++)
+        {
+            currValuesMapping.Add(_rightParams[i], right.Values[i]);
+        }
 
-    List<string> GetParams()
+        if (Condition != null && Evaluator.EvaludateConditionModule(Condition, currValuesMapping) == false)
+        {
+            return null;
+        }
+
+        // Left context doesnt match
+        if (left is not null && LeftContext is not null && left.Word != LeftContext.Value)
+        {
+            return null;
+        }
+        
+        // Right context doesnt match 
+        if (right is not null && RightContext is not null && right.Word != RightContext.Value)
+        {
+            return null;
+        }
+        
+        // Do calculations
+        return Evaluator.Evaluate(Successor, currValuesMapping);
+    }
+
+    List<string> GetParams(ASTNode? module)
     {
         List<string> parameters = [];
-        foreach (var expr in Predecessor.ChildNodes[0].ChildNodes)
+        if (module is null) return [];
+        foreach (var expr in module.ChildNodes[0].ChildNodes)
         {
             var param = expr.ChildNodes[0].ChildNodes[0].ChildNodes[0] as ParameterNode;
             parameters.Add(param.Value);

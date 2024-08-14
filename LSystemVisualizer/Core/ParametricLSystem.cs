@@ -5,6 +5,8 @@ using TurtleGraphics.BlazorCanvas;
 
 namespace LSystemVisualizer.Core;
 
+public record Module(string Word, List<double> Values);
+
 public class ParametricLSystem : ILSystem
 {
     public List<ParametricRule> Rules = [];
@@ -57,36 +59,38 @@ public class ParametricLSystem : ILSystem
         // List of each module, and all of the current values
         var evaluations = Evaluator.Evaluate(astTree, emptyVals);
 
-        foreach (var module in evaluations)
+        for (var i = 0; i < evaluations.Count; i++)
         {
+            var module = evaluations[i];
             // Just a letter, replicate it
-            if (module.values.Count == 0)
+            if (module.Values.Count == 0)
             {
-                newWord += module.word;
+                newWord += module.Word;
                 continue;
             }
-            
-            List<(string word, List<double> values)>? newValues = null;
+
+            List<Module>? newValues = null;
             foreach (var rule in Rules)
             {
-                // This may need to generate a list of stuff because more than one module may return
-                newValues = rule.TryApply(module.word, module.values, Defines);
+                var leftContext = rule.LeftContextText != "" && i > 0 ? evaluations[i - 1] : null;
+                var rightContext = rule.RightContextText != "" && i < evaluations.Count-1 ? evaluations[i + 1] : null;
+                newValues = rule.TryApplyContext(leftContext, module, rightContext, Defines);
                 if (newValues != null)
                 {
                     break;
                 }
             }
-            
+
             if (newValues == null)
             {
-                if (module.values.Count == 0) newWord += module.word;
-                else newWord += ModuleToString(module.word, module.values);
+                if (module.Values.Count == 0) newWord += module.Word;
+                else newWord += ModuleToString(module.Word, module.Values);
             }
             else
             {
                 foreach (var newModule in newValues)
                 {
-                    newWord += ModuleToString(newModule.word, newModule.values);
+                    newWord += ModuleToString(newModule.Word, newModule.Values);
                 }
             }
         }

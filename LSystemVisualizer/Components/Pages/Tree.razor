@@ -50,6 +50,9 @@
     protected override void OnInitialized()
     {
         word = "F(x) : -> F(x*p)+F(x*h)--F(x*h)+F(x*q)";
+        var ctx = new ParametricLSystem("A(4)B(5)C(6)", [
+            new ParametricRule("B(y) : x+y+z > 10 -> E(x,y,z)", "A(x)", "C(z)")
+        ],new Dictionary<string, string>());
         _rule = new ParametricRule(word);
         //_tree = Parser.ParseModuleList(Tokenizer.Tokenize(word));
     }

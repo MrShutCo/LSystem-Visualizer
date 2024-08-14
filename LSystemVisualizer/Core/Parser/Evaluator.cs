@@ -1,4 +1,5 @@
 using System.Reflection.Metadata;
+using LSystemVisualizer.Core;
 using LSystemVisualizer.Core.Parser;
 
 namespace ShutCo.UI.Core.Rules;
@@ -7,11 +8,11 @@ public static class Evaluator
 {
     public const int DigitsPrecision = 4;
     
-    public static List<(string word, List<double> values)> Evaluate(ASTNode moduleList, Dictionary<string, double> currValues)
+    public static List<Module> Evaluate(ASTNode moduleList, Dictionary<string, double> currValues)
     {
         if (moduleList.NodeType != "ModuleList") return [];
 
-        List<(string word, List<double> values)> values = [];
+        List<Module> values = [];
 
         int i = 0;
         foreach (var module in moduleList.ChildNodes)
@@ -19,10 +20,10 @@ public static class Evaluator
             // Just a standalone letter
             if (module.ChildNodes.Count == 0)
             {
-                values.Add((module.Value, []));
+                values.Add(new Module(module.Value, []));
                 continue;
             }
-            values.Add((module.Value, EvaluateModule(module, currValues)));
+            values.Add(new Module(module.Value, EvaluateModule(module, currValues)));
             i++;
         }
 

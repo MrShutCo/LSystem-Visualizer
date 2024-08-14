@@ -115,7 +115,7 @@ public class Parser()
         var condition = ParseCondition(tokenQueue);
         if (condition == null) return null;
 
-        if (tokenQueue.Count == 0) return condition;
+        if (tokenQueue.Count == 0) return new ASTNode("ModuleCondition", "", [condition]);
         var tok = tokenQueue.Peek();
         if (tok.Value is not ("&" or "|")) return new ASTNode("ModuleCondition", "", [condition]);
 

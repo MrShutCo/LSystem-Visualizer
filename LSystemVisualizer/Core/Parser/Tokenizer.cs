@@ -44,9 +44,10 @@ public static class Tokenizer
     public static List<Token> Tokenize(string word)
     {
         var tokens = new List<Token>();
+        bool isTokenizingModule = false;
         for (var i = 0; i < word.Length; i++)
         {
-            if (char.IsUpper(word[i]))
+            if (char.IsUpper(word[i]) || word[i] is '!' or '\\')
             {
                 tokens.Add(new Token(TokenType.Symbol, word[i].ToString()));
             } 

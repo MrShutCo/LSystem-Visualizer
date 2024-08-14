@@ -90,6 +90,7 @@
     private static readonly Random _random = new();
 
     List<string> derivations = [];
+
     
     
     List<ParametricLSystem> _lSystems =
@@ -133,6 +134,10 @@
 
     protected override void OnInitialized()
     {
+        var rule = new ParametricRule("A(s,w) : s >= m -> !(w)F(s)" +
+                                      "[+(a1)/(phi1)A(s*r1,w*q^e)]" +
+                                      "[+(a2)/(phi2)A(s*r2,w*(1-q)^e)]");
+        
         _lSystems[0].Name = "Row of Trees 1";
         _lSystems[0].Distance = 450;
         _lSystems[0].Angle = 85;
