@@ -1,0 +1,29 @@
+@page "/threed"
+@using LSystemVisualizer.Core.Parser
+@using ShutCo.UI.Core.Rules
+@inject IJSRuntime js;
+
+<h3>threed</h3>
+<canvas width="500" height="500" id="my_canvas"></canvas>
+
+@code {
+
+    protected override async void OnInitialized()
+    {
+        await js.InvokeVoidAsync("initialize");
+    }
+
+
+    void Step(string word)
+    {
+        var modules = Parser.ParseModuleList(Tokenizer.Tokenize(word));
+        Stack<(float, float, float)> stateStack = [];
+        foreach (var module in modules.ChildNodes)
+        {
+            var values = Evaluator.EvaluateModule(module, []);
+            
+            
+        }
+    }
+    
+}
