@@ -4,6 +4,7 @@ using LSystemVisualizer.Core;
 using LSystemVisualizer.Core.Parser;
 using ShutCo.UI.Core;
 using ShutCo.UI.Core.Rules;
+using TestingGround;
 
 var condition1 = Parser.ParseCondition(new Queue<Token>(Tokenizer.Tokenize("y < 5")));
 var condition2 = Parser.ParseCondition(new Queue<Token>(Tokenizer.Tokenize("x + y >= 5")));
@@ -78,8 +79,25 @@ var ctx = new ParametricLSystem("A(4)B(5)C(6)", [
     new ParametricRule("B(y) : x+y+z > 10 -> E(x,y,z)", "A(x)", "C(z)")
 ],new Dictionary<string, string>());
 
-ctx.StepLSystem([ctx.StartingWord], 1);
+//ctx.StepLSystem([ctx.StartingWord], 1);
 
+var ssss = new ParametricLSystem("!(1)F(200)/(45)A", new List<ParametricRule>
+{
+    new("A : -> !(v)F(50)[&(a)F(50)A]/(d)[&(a)F(50)A]/(b)[&(a)F(50)A]"),
+    new ("F(x) : -> F(x*l)"),
+    new ("!(w) : -> !(w*v)")
+}, new Dictionary<string, string>
+{
+    { "d", "94.74" },
+    { "b", "132.63" },
+    { "a", "18.95" },
+    { "l", "1.109" },
+    { "v", "1.732" },
+});
+
+Parser.ParseModuleList(Tokenizer.Tokenize("C[fF]-(45)[fF]+(45)[fF]"));
+
+//ssss.StepLSystem([ssss.StartingWord], 3);
 
 //system2.StepLSystem(["A(1,10)"], 1);
 
@@ -127,3 +145,5 @@ List<string> rulesS =
 //     {7,3,3,1,1,2,4,5,11,11,9,5},
 //     {4,11,2,6,7,10,8,5,8,12,1,4}
 // });
+
+Words.Solve();

@@ -141,7 +141,7 @@ public class ParametricRule
     List<string> GetParams(ASTNode? module)
     {
         List<string> parameters = [];
-        if (module is null) return [];
+        if (module is null || module.ChildNodes.Count == 0) return [];
         foreach (var expr in module.ChildNodes[0].ChildNodes)
         {
             var param = expr.ChildNodes[0].ChildNodes[0].ChildNodes[0] as ParameterNode;

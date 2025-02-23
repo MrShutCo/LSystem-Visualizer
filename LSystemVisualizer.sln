@@ -4,8 +4,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LSystemVisualizer", "LSyste
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestingGround", "TestingGround\TestingGround.csproj", "{A83FED77-3A50-469E-A58B-70CBDC544C01}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LSystemLib", "LSystemLib\LSystemLib.csproj", "{271EA491-92D6-43A2-A6C0-A6AE73489E08}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,9 +18,5 @@ Global
 		{A83FED77-3A50-469E-A58B-70CBDC544C01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A83FED77-3A50-469E-A58B-70CBDC544C01}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A83FED77-3A50-469E-A58B-70CBDC544C01}.Release|Any CPU.Build.0 = Release|Any CPU
-		{271EA491-92D6-43A2-A6C0-A6AE73489E08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{271EA491-92D6-43A2-A6C0-A6AE73489E08}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{271EA491-92D6-43A2-A6C0-A6AE73489E08}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{271EA491-92D6-43A2-A6C0-A6AE73489E08}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
